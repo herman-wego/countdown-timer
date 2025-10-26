@@ -14,6 +14,7 @@
             margin: 0;
             padding: 0;
             box-sizing: border-box;
+            user-select: none;
         }
 
         body {
@@ -29,12 +30,12 @@
             transition: background 2.5s linear; 
         }
 
-        /* --- 2. Day/Night Cycle & Decorations Container --- */
+        /* --- 2. Day/Night Cycle Container --- */
         #celestial-container {
             position: fixed;
             top: 0; left: 0;
             width: 100%; height: 100%;
-            z-index: 1; /* Behind the content */
+            z-index: 1; /* BEHIND everything */
             pointer-events: none;
         }
         
@@ -57,53 +58,42 @@
             background: #E6E6E6;
             box-shadow: 0 0 20px #E6E6E6, 0 0 30px #E6E6E6;
         }
-
-        /* NEW: Bird Styles */
-        .bird {
+        
+        /* --- 3. Game Container --- */
+        #game-container {
+            position: fixed;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            z-index: 3; /* IN FRONT of countdown */
+            pointer-events: none;
+        }
+        
+        .falling-object {
             position: absolute;
-            width: 20px; /* Small size for a distant bird */
-            height: 20px;
-            background: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="white"><path d="M21 16v-2.385l-7.25-3.625 2.25-2.25c.385-.385.577-.827.577-1.327 0-.5-.192-.942-.577-1.327-.385-.385-.827-.577-1.327-.577-.5 0-.942.192-1.327.577l-4.75 4.75-2.25-2.25c-.385-.385-.827-.577-1.327-.577-.5 0-.942.192-1.327.577l-5.75 5.75V16c-.531 0-1.031.218-1.406.594-.375.375-.594.875-.594 1.406 0 .531.218 1.031.594 1.406.375.375.875.594 1.406.594h17c.531 0 1.031-.218 1.406-.594.375-.375.594-.875.594-1.406 0-.531-.218-1.031-.594-1.406-.375-.375-.875-.594-1.406-.594z"/></svg>') no-repeat center center;
-            background-size: contain;
-            transition: opacity 2s ease-in-out; /* Smooth fade in/out */
-            opacity: 0; /* Hidden by default */
-            animation: birdFly 15s linear infinite; /* Animation defined below */
+            font-size: 3rem; 
+            text-shadow: 0 0 10px rgba(0,0,0,0.5);
+            cursor: pointer;
+            pointer-events: all; /* Make objects clickable */
+            transition: transform 0.1s ease-out; /* Pop effect on click */
         }
-        @keyframes birdFly {
-            0% { transform: translateX(-10vw) translateY(50vh) scale(0.8); opacity: 0; }
-            5% { opacity: 1; }
-            95% { opacity: 1; }
-            100% { transform: translateX(110vw) translateY(30vh) scale(1.2); opacity: 0; }
+        
+        .falling-object:active {
+            transform: scale(1.5);
         }
 
-        /* NEW: Star Styles */
-        .star {
-            position: absolute;
-            background: #fff;
-            border-radius: 50%;
-            opacity: 0; /* Hidden by default, JS controls opacity for twinkle and fade */
-            animation: twinkle 5s infinite ease-in-out;
-            transition: opacity 2s ease-in-out; /* Smooth fade in/out */
-        }
-        @keyframes twinkle {
-            0%, 100% { opacity: 0.1; }
-            50% { opacity: 1; }
-        }
-
-
-        /* --- 3. Main Container --- */
+        /* --- 4. Main Content Container --- */
         .container {
             max-width: 800px;
             width: 100%;
             position: relative;
-            z-index: 2; /* On top of the celestial and decorations */
+            z-index: 2; /* BEHIND game */
         }
 
         h1, p { text-shadow: 0 2px 5px rgba(0,0,0,0.3); }
         h1 { font-size: 2.5rem; font-weight: 700; margin-bottom: 1rem; }
         p { font-size: 1.1rem; font-weight: 300; margin-bottom: 2rem; }
 
-        /* --- 4. Countdown Timer Styles --- */
+        /* --- 5. Countdown Timer Styles --- */
         .countdown-container {
             display: flex;
             flex-wrap: wrap;
@@ -120,15 +110,91 @@
             padding: 1.5rem 2rem;
             min-width: 140px;
             box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+            pointer-events: none; 
         }
 
         .number { display: block; font-size: 3.5rem; font-weight: 600; }
         .label { font-size: 0.9rem; font-weight: 300; text-transform: uppercase; }
         
-        /* --- 5. Expiry Message --- */
+        /* --- 6. Expiry Message --- */
         #expiry-message { font-size: 2.5rem; font-weight: 700; color: #4ade80; }
 
-        /* --- 6. Responsive Design --- */
+        /* --- 7. Game UI (Score, Messages) --- */
+        #game-ui {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 100; /* On top of game */
+            background: rgba(0,0,0,0.3);
+            backdrop-filter: blur(5px);
+            padding: 10px 20px;
+            border-radius: 12px;
+            font-size: 1.5rem;
+            font-weight: 600;
+        }
+
+        /* Notification Toast for "Level Up" and "Game Started" */
+        #game-notification-toast {
+            position: fixed;
+            top: 20px;
+            left: 50%;
+            transform: translate(-50%, -200%); /* Start hidden above screen */
+            z-index: 101; /* Above all */
+            background: rgba(0, 0, 0, 0.5);
+            backdrop-filter: blur(5px);
+            padding: 10px 20px;
+            border-radius: 12px;
+            font-size: 1.8rem;
+            font-weight: 600;
+            pointer-events: none; /* Non-blocking */
+            opacity: 0;
+            transition: transform 0.5s ease, opacity 0.5s ease;
+        }
+
+        #game-notification-toast.active {
+            transform: translate(-50%, 0); /* Slide down */
+            opacity: 1;
+        }
+
+        /* "Game Over" only overlay */
+        #game-over-overlay {
+            position: fixed;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            background: rgba(0,0,0,0.7);
+            z-index: 99; /* On top of game */
+            display: none; 
+            place-items: center;
+            flex-direction: column;
+            gap: 20px;
+            padding: 20px;
+        }
+        
+        #game-over-message {
+            font-size: 2.5rem;
+            font-weight: 700;
+            color: #fff;
+            text-align: center;
+        }
+        
+        #restart-btn {
+            font-family: 'Poppins', sans-serif;
+            font-size: 1.2rem;
+            font-weight: 600;
+            padding: 12px 25px;
+            border-radius: 8px;
+            border: none;
+            background: #fff;
+            color: #333;
+            cursor: pointer;
+            transition: transform 0.2s ease;
+        }
+        
+        #restart-btn:hover {
+            transform: scale(1.05);
+        }
+
+        /* --- 8. Responsive Design --- */
         @media (max-width: 600px) {
             h1 { font-size: 2rem; }
             p { font-size: 1rem; }
@@ -136,11 +202,15 @@
             .time-box { min-width: 100px; padding: 1rem 1.2rem; }
             .number { font-size: 2.5rem; }
             .label { font-size: 0.75rem; }
+            #sun, #moon { width: 30px; height: 30px; }
             
-            #sun, #moon {
-                width: 30px;
-                height: 30px;
+            .falling-object { 
+                font-size: 2.5rem; 
             }
+            
+            #game-ui { font-size: 1rem; padding: 8px 15px; }
+            #game-over-message { font-size: 1.8rem; }
+            #game-notification-toast { font-size: 1.2rem; }
         }
         
     </style>
@@ -150,7 +220,20 @@
     <div id="celestial-container">
         <div id="sun"></div>
         <div id="moon"></div>
-        <!-- Decorations will be added here by JavaScript --></div>
+    </div>
+    
+    <div id="game-container"></div>
+    
+    <div id="game-ui">
+        <span>Score: </span><span id="score-display">0</span>
+    </div>
+    
+    <div id="game-notification-toast"></div>
+    
+    <div id="game-over-overlay">
+        <h2 id="game-over-message">Game Over!</h2>
+        <button id="restart-btn">Restart Game</button>
+    </div>
 
     <main class="container">
         <h1>Countdown to Bali</h1>
@@ -185,7 +268,6 @@
         // --- 1. Set the Target Date ---
         const currentYear = new Date().getFullYear();
         let targetDate = new Date(`2025-12-22T11:55:00+01:00`); 
-        
         if (targetDate - new Date() < 0) {
             targetDate = new Date(`${currentYear + 1}-12-22T11:55:00+01:00`); 
         }
@@ -198,187 +280,225 @@
         const countdownContainer = document.getElementById('countdown-container');
         const expiryMessage = document.getElementById('expiry-message');
         const bodyEl = document.body;
-        
         const sunEl = document.getElementById('sun');
         const moonEl = document.getElementById('moon');
-        const celestialContainer = document.getElementById('celestial-container'); // Get the container for decorations
 
-        // --- 3. Day/Night Cycle Logic ---
-        
+        // --- 3. Day/Night Cycle Logic (Unchanged) ---
         const skyColors = {
-            midnight: { top: 'rgb(0, 5, 20)', bottom: 'rgb(0, 0, 0)' },         // 0:00 - Totally dark
-            sunrise:  { top: 'rgb(135, 206, 250)', bottom: 'rgb(255, 170, 80)' }, // 6:00 - Blue sky, orange horizon
-            noon:     { top: 'rgb(30, 144, 255)', bottom: 'rgb(135, 206, 250)' }, // 12:00 - Brightest blue
-            sunset:   { top: 'rgb(255, 140, 0)', bottom: 'rgb(50, 0, 70)' }     // 18:00 - Orange/purple evening
+            midnight: { top: 'rgb(0, 5, 20)', bottom: 'rgb(0, 0, 0)' },
+            sunrise:  { top: 'rgb(135, 206, 250)', bottom: 'rgb(255, 170, 80)' },
+            noon:     { top: 'rgb(30, 144, 255)', bottom: 'rgb(135, 206, 250)' },
+            sunset:   { top: 'rgb(255, 140, 0)', bottom: 'rgb(50, 0, 70)' }
         };
-
-        function interpolateColor(color1, color2, percent) {
-            const [r1, g1, b1] = color1.match(/\d+/g).map(Number);
-            const [r2, g2, b2] = color2.match(/\d+/g).map(Number);
-            const r = Math.round(r1 + (r2 - r1) * percent);
-            const g = Math.round(g1 + (g2 - g1) * percent);
-            const b = Math.round(b1 + (b2 - b1) * percent);
-            return `rgb(${r}, ${g}, ${b})`;
+        function interpolateColor(c1, c2, p) {
+            const [r1, g1, b1] = c1.match(/\d+/g).map(Number);
+            const [r2, g2, b2] = c2.match(/\d+/g).map(Number);
+            return `rgb(${Math.round(r1 + (r2 - r1) * p)}, ${Math.round(g1 + (g2 - g1) * p)}, ${Math.round(b1 + (b2 - b1) * p)})`;
         }
-
         function updateSky(totalMinutes) {
-            let c1, c2, percent;
-            
-            if (totalMinutes < 360) { // Midnight to Sunrise (0:00 - 6:00)
-                percent = totalMinutes / 360;
-                c1 = skyColors.midnight;
-                c2 = skyColors.sunrise;
-            } else if (totalMinutes < 720) { // Sunrise to Noon (6:00 - 12:00)
-                percent = (totalMinutes - 360) / 360;
-                c1 = skyColors.sunrise;
-                c2 = skyColors.noon;
-            } else if (totalMinutes < 1080) { // Noon to Sunset (12:00 - 18:00)
-                percent = (totalMinutes - 720) / 360;
-                c1 = skyColors.noon;
-                c2 = skyColors.sunset;
-            } else { // Sunset to Midnight (18:00 - 24:00)
-                percent = (totalMinutes - 1080) / 360;
-                c1 = skyColors.sunset;
-                c2 = skyColors.midnight;
-            }
-
-            const topColor = interpolateColor(c1.top, c2.top, percent);
-            const bottomColor = interpolateColor(c1.bottom, c2.bottom, percent);
-            bodyEl.style.background = `linear-gradient(to bottom, ${topColor}, ${bottomColor})`;
+            let c1, c2, p;
+            if (totalMinutes < 360) { p = totalMinutes / 360; c1 = skyColors.midnight; c2 = skyColors.sunrise; }
+            else if (totalMinutes < 720) { p = (totalMinutes - 360) / 360; c1 = skyColors.sunrise; c2 = skyColors.noon; }
+            else if (totalMinutes < 1080) { p = (totalMinutes - 720) / 360; c1 = skyColors.noon; c2 = skyColors.sunset; }
+            else { p = (totalMinutes - 1080) / 360; c1 = skyColors.sunset; c2 = skyColors.midnight; }
+            bodyEl.style.background = `linear-gradient(to bottom, ${interpolateColor(c1.top, c2.top, p)}, ${interpolateColor(c1.bottom, c2.bottom, p)})`;
         }
-        
         function updateCelestialBodies(totalMinutes) {
-            if (totalMinutes >= 360 && totalMinutes < 1080) {
-                // --- DAYTIME (6am to 6pm) ---
-                const percentOfDay = (totalMinutes - 360) / 720; // 0.0 to 1.0
-                const angle = (1 - percentOfDay) * Math.PI; // PI (left) to 0 (right)
-                
-                const x = 50 + 50 * Math.cos(angle); 
-                const y = 100 - 85 * Math.sin(angle); 
-                
-                sunEl.style.left = x + 'vw';
-                sunEl.style.top = y + 'vh';
-                sunEl.style.opacity = '1';
-                moonEl.style.opacity = '0';
-
-            } else {
-                // --- NIGHTTIME (6pm to 6am) ---
-                let nightMinutes = (totalMinutes >= 1080) 
-                    ? totalMinutes - 1080 // 6pm to midnight
-                    : totalMinutes + (1440 - 1080); // midnight to 6am
-                
-                const percentOfNight = nightMinutes / 720; // 0.0 to 1.0
-                const angle = (1 - percentOfNight) * Math.PI; // PI (left) to 0 (right)
-                
-                const x = 50 + 50 * Math.cos(angle);
-                const y = 100 - 85 * Math.sin(angle);
-                
-                moonEl.style.left = x + 'vw';
-                moonEl.style.top = y + 'vh';
-                moonEl.style.opacity = '1';
-                sunEl.style.opacity = '0';
-            }
+            const isDay = totalMinutes >= 360 && totalMinutes < 1080;
+            let percent = isDay ? (totalMinutes - 360) / 720 : (totalMinutes >= 1080 ? totalMinutes - 1080 : totalMinutes + 360) / 720;
+            const angle = (1 - percent) * Math.PI;
+            const x = 50 + 50 * Math.cos(angle); 
+            const y = 100 - 85 * Math.sin(angle);
+            const el = isDay ? sunEl : moonEl;
+            const otherEl = isDay ? moonEl : sunEl;
+            el.style.left = x + 'vw'; el.style.top = y + 'vh'; el.style.opacity = '1'; otherEl.style.opacity = '0';
         }
 
-        // --- NEW: Decoration Logic ---
-
-        let birds = [];
-        const numBirds = 3; // Number of birds to display
-
-        function createBirds() {
-            for (let i = 0; i < numBirds; i++) {
-                const bird = document.createElement('div');
-                bird.className = 'bird';
-                // Randomize initial position and animation delay slightly
-                bird.style.left = Math.random() * 100 + 'vw';
-                bird.style.top = Math.random() * 50 + 'vh';
-                bird.style.animationDelay = `${Math.random() * 5}s`;
-                celestialContainer.appendChild(bird);
-                birds.push(bird);
-            }
-        }
-
-        function toggleBirds(show) {
-            birds.forEach(bird => {
-                bird.style.opacity = show ? '1' : '0';
-            });
-        }
-
-        let stars = [];
-        const numStars = 100; // Number of stars to display
-
-        function createStars() {
-            for (let i = 0; i < numStars; i++) {
-                const star = document.createElement('div');
-                star.className = 'star';
-                star.style.left = Math.random() * 100 + 'vw';
-                star.style.top = Math.random() * 100 + 'vh';
-                const size = Math.random() * 2 + 1; // 1px to 3px
-                star.style.width = size + 'px';
-                star.style.height = size + 'px';
-                star.style.animationDelay = `${Math.random() * 5}s`;
-                celestialContainer.appendChild(star);
-                stars.push(star);
-            }
-        }
-
-        function toggleStars(show) {
-            stars.forEach(star => {
-                star.style.opacity = show ? '1' : '0';
-            });
-        }
-
-
-        // --- 5. Main Update Function ---
+        // --- 4. Main Countdown Update Function ---
         function updateCountdown() {
-            // --- A. Countdown Timer Logic ---
-            const nowForCountdown = new Date();
-            const diff = targetDate - nowForCountdown;
-
+            const now = new Date();
+            const diff = targetDate - now;
             if (diff <= 0) {
                 clearInterval(timerInterval);
                 countdownContainer.style.display = 'none';
                 expiryMessage.style.display = 'block';
-                bodyEl.className = 'sunny-active'; 
                 bodyEl.style.background = `linear-gradient(120deg, #89f7fe, #fdfc47)`;
-                
-                // Ensure decorations are hidden on expiry
-                toggleBirds(false);
-                toggleStars(false);
+                stopGame();
                 return;
             }
-
-            const days = Math.floor(diff / (1000 * 60 * 60 * 24));
-            const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
-            const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
-            const seconds = Math.floor((diff % (1000 * 60)) / 1000);
-
-            daysEl.innerText = days.toString().padStart(2, '0');
-            hoursEl.innerText = hours.toString().padStart(2, '0');
-            minutesEl.innerText = minutes.toString().padStart(2, '0');
-            secondsEl.innerText = seconds.toString().padStart(2, '0');
+            daysEl.innerText = Math.floor(diff / 864e5).toString().padStart(2, '0');
+            hoursEl.innerText = Math.floor((diff % 864e5) / 36e5).toString().padStart(2, '0');
+            minutesEl.innerText = Math.floor((diff % 36e5) / 6e4).toString().padStart(2, '0');
+            secondsEl.innerText = Math.floor((diff % 6e4) / 1000).toString().padStart(2, '0');
             
-            // --- B. Day/Night Cycle Logic ---
-            const nowForCycle = new Date();
-            const currentHours = nowForCycle.getHours();
-            const currentMinutes = nowForCycle.getMinutes();
-            const totalMinutes = currentHours * 60 + currentMinutes;
-            
+            const totalMinutes = now.getHours() * 60 + now.getMinutes();
             updateSky(totalMinutes);
             updateCelestialBodies(totalMinutes);
-
-            // --- C. NEW: Decoration Toggling ---
-            // Show birds from 6 AM (360 min) to 6 PM (1080 min)
-            const isDaytime = totalMinutes >= 360 && totalMinutes < 1080;
-            toggleBirds(isDaytime);
-            toggleStars(!isDaytime); // Show stars at night
         }
 
-        // --- 6. Run the Timer and Create Decorations ---
+        // --- 5. UPDATED: Re-Balanced Game Logic ---
+        
+        const gameContainer = document.getElementById('game-container');
+        const scoreDisplay = document.getElementById('score-display');
+        const notificationToast = document.getElementById('game-notification-toast');
+        const gameOverOverlay = document.getElementById('game-over-overlay');
+        const gameOverMessage = document.getElementById('game-over-message');
+        const restartBtn = document.getElementById('restart-btn');
+
+        let gameIsActive = false;
+        let gameScore = 0;
+        let gameLevel = 1;
+        let baseFallSpeed = 1;
+        let baseSpawnRate = 2000;
+        let gameObjects = [];
+        let spawnInterval;
+        let animationFrameId;
+
+        function showNotification(message, duration) {
+            notificationToast.innerText = message;
+            notificationToast.classList.add('active');
+            setTimeout(() => {
+                notificationToast.classList.remove('active');
+            }, duration);
+        }
+        
+        // NEW: Helper function to re-calculate and set the spawn interval
+        function updateSpawnInterval() {
+            // Gradually decrease spawn rate (time between waves)
+            // Starts at 2000ms, gets faster with score. Min of 500ms.
+            baseSpawnRate = Math.max(500, 2000 - (gameScore * 15));
+            clearInterval(spawnInterval);
+            spawnInterval = setInterval(spawnWave, baseSpawnRate);
+        }
+
+        function initGame() {
+            document.addEventListener('mousedown', onObjectClick);
+            document.addEventListener('touchstart', onObjectClick);
+            restartBtn.addEventListener('click', startGame);
+            startGame();
+        }
+
+        function startGame() {
+            gameIsActive = false;
+            gameScore = 0;
+            gameLevel = 1; 
+            baseFallSpeed = 1; // Reset speed
+            baseSpawnRate = 2000;
+            
+            scoreDisplay.innerText = '0';
+            gameOverOverlay.style.display = 'none';
+            gameObjects.forEach(obj => obj.el.remove());
+            gameObjects = [];
+            
+            clearInterval(spawnInterval);
+            spawnInterval = setInterval(spawnWave, baseSpawnRate); 
+            
+            cancelAnimationFrame(animationFrameId);
+            gameLoop();
+        }
+
+        function stopGame() {
+            clearInterval(spawnInterval);
+            cancelAnimationFrame(animationFrameId);
+            gameIsActive = false;
+        }
+
+        function gameOver() {
+            stopGame();
+            gameOverMessage.innerHTML = `Game Over!<br>Final Score: ${gameScore}`;
+            gameOverOverlay.style.display = 'grid';
+        }
+
+        function increaseDifficulty() {
+            gameLevel++; // Increase number of items to spawn
+            
+            // Show non-blocking notification
+            showNotification(`Level ${gameLevel}!`, 1500);
+        }
+        
+        function onObjectClick(e) {
+            if (e.target.classList.contains('falling-object')) {
+                e.preventDefault();
+                
+                if (!gameIsActive) {
+                    gameIsActive = true;
+                    showNotification('Game Started! Don\'t miss.', 1500);
+                }
+
+                gameScore++;
+                scoreDisplay.innerText = gameScore;
+
+                // NEW: Gradual speed increase on *every* point
+                // Starts at 1, goes to 1.5 at score 10, 2.0 at score 20, etc.
+                baseFallSpeed = 1 + (gameScore * 0.05); 
+                
+                // NEW: Gradually update spawn rate on *every* point
+                updateSpawnInterval();
+
+                // Remove clicked object
+                const clickedObj = gameObjects.find(obj => obj.el === e.target);
+                if (clickedObj) {
+                    clickedObj.el.remove();
+                    gameObjects = gameObjects.filter(obj => obj !== clickedObj);
+                }
+                
+                // Check for level up (more items)
+                if (gameScore % 10 === 0) {
+                    increaseDifficulty();
+                }
+            }
+        }
+
+        function spawnWave() {
+            const hours = new Date().getHours();
+            let emoji;
+            
+            if (hours >= 6 && hours < 12) {
+                emoji = '🍃';
+            } else if (hours >= 12 && hours < 18) {
+                emoji = '🌸';
+            } else if (hours >= 18 && hours < 24) {
+                emoji = '🍂';
+            } else {
+                emoji = '⭐';
+            }
+            
+            for (let i = 0; i < gameLevel; i++) {
+                const obj = document.createElement('div');
+                obj.className = 'falling-object';
+                obj.innerText = emoji;
+                
+                obj.style.left = Math.random() * 90 + 5 + 'vw';
+                obj.style.top = '-50px';
+                
+                // NEW: Randomness is now smaller and based on level
+                const speed = baseFallSpeed + (Math.random() * (gameLevel * 0.2 + 0.5));
+                
+                gameContainer.appendChild(obj);
+                gameObjects.push({ el: obj, y: -50, speed: speed });
+            }
+        }
+
+        function gameLoop() {
+            for (let i = gameObjects.length - 1; i >= 0; i--) {
+                const obj = gameObjects[i];
+                obj.y += obj.speed; // Use the speed set when it was spawned
+                obj.el.style.top = obj.y + 'px';
+                if (obj.y > window.innerHeight + 50) {
+                    obj.el.remove();
+                    gameObjects.splice(i, 1);
+                    if (gameIsActive) {
+                        gameOver();
+                    }
+                }
+            }
+            animationFrameId = requestAnimationFrame(gameLoop);
+        }
+
+        // --- 6. Run Timers ---
         const timerInterval = setInterval(updateCountdown, 1000);
-        createBirds(); // Create bird elements once
-        createStars(); // Create star elements once
-        updateCountdown(); // Run it once immediately on page load
+        updateCountdown();
+        initGame();
 
     </script>
 
