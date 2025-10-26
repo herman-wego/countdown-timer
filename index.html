@@ -208,6 +208,17 @@
             transform: scale(1.05);
         }
 
+        #version-label {
+            position: fixed;
+            bottom: 10px;
+            left: 10px;
+            font-size: 0.75rem;
+            color: rgba(255, 255, 255, 0.4);
+            z-index: 100;
+            pointer-events: none;
+            font-weight: 300;
+        }
+
         /* --- 8. Responsive Design --- */
         @media (max-width: 600px) {
             h1 { font-size: 2rem; }
@@ -278,14 +289,26 @@
         
     </main>
 
+    <div id="version-label">
+        Version 1.1
+    </div>
+
     <script>
         // --- 1. Set the Target Date ---
         const currentYear = new Date().getFullYear();
-        let targetDate = new Date(`2025-12-22T11:55:00+01:00`); 
-        if (targetDate - new Date() < 0) {
-            targetDate = new Date(`${currentYear + 1}-12-22T11:55:00+01:00`); 
-        }
+        // NOTE: The user's code had 2025 hardcoded. 
+        // We'll check if the current date is *after* the target date in the *current* year.
+        // If it is, we'll set the target to next year.
+        let targetDateCheck = new Date(`${currentYear}-12-22T11:55:00+01:00`);
+        let targetYear = currentYear;
 
+        if (targetDateCheck - new Date() < 0) {
+            // If the date has already passed this year, set it to next year
+            targetYear = currentYear + 1;
+        }
+        
+        const targetDate = new Date(`${targetYear}-12-22T11:55:00+01:00`);
+        
         // --- 2. Get DOM Elements ---
         const daysEl = document.getElementById('days');
         const hoursEl = document.getElementById('hours');
@@ -312,14 +335,14 @@
         }
         function updateSky(totalMinutes) {
             let c1, c2, p;
-            if (totalMinutes < 360) { p = totalMinutes / 360; c1 = skyColors.midnight; c2 = skyColors.sunrise; }
-            else if (totalMinutes < 720) { p = (totalMinutes - 360) / 360; c1 = skyColors.sunrise; c2 = skyColors.noon; }
-            else if (totalMinutes < 1080) { p = (totalMinutes - 720) / 360; c1 = skyColors.noon; c2 = skyColors.sunset; }
-            else { p = (totalMinutes - 1080) / 360; c1 = skyColors.sunset; c2 = skyColors.midnight; }
+            if (totalMinutes < 360) { p = totalMinutes / 360; c1 = skyColors.midnight; c2 = skyColors.sunrise; } // 00:00 - 06:00
+            else if (totalMinutes < 720) { p = (totalMinutes - 360) / 360; c1 = skyColors.sunrise; c2 = skyColors.noon; } // 06:00 - 12:00
+            else if (totalMinutes < 1080) { p = (totalMinutes - 720) / 360; c1 = skyColors.noon; c2 = skyColors.sunset; } // 12:00 - 18:00
+            else { p = (totalMinutes - 1080) / 360; c1 = skyColors.sunset; c2 = skyColors.midnight; } // 18:00 - 24:00
             bodyEl.style.background = `linear-gradient(to bottom, ${interpolateColor(c1.top, c2.top, p)}, ${interpolateColor(c1.bottom, c2.bottom, p)})`;
         }
         function updateCelestialBodies(totalMinutes) {
-            const isDay = totalMinutes >= 360 && totalMinutes < 1080;
+            const isDay = totalMinutes >= 360 && totalMinutes < 1080; // 6am to 6pm
             let percent = isDay ? (totalMinutes - 360) / 720 : (totalMinutes >= 1080 ? totalMinutes - 1080 : totalMinutes + 360) / 720;
             const angle = (1 - percent) * Math.PI;
             const x = 50 + 50 * Math.cos(angle); 
@@ -630,6 +653,19 @@
                         case 'DRIFT_LEFT':
                         case 'DRIFT_RIGHT':
                             obj.xOffset += obj.driftAmount;
+                            
+                            // Cap the total horizontal drift to 15% of the viewport width
+                            // to prevent items from drifting off-screen.
+                            const xCap = window.innerWidth * 0.15; 
+
+                            if (obj.xOffset > xCap) {
+                                obj.xOffset = xCap;
+                                obj.driftAmount *= -1; // Reverse direction (bounce)
+                            } else if (obj.xOffset < -xCap) {
+                                obj.xOffset = -xCap;
+                                obj.driftAmount *= -1; // Reverse direction (bounce)
+                            }
+                            
                             xTranslate += obj.xOffset;
                             break;
                         case 'SPIN_FAST':
@@ -684,4 +720,5 @@
 
 </body>
 </html>
+
 
