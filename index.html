@@ -59,7 +59,6 @@
             box-shadow: 0 0 20px #E6E6E6, 0 0 30px #E6E6E6;
         }
         
-        /* Static Star Styles */
         .star {
             position: absolute;
             background: #fff;
@@ -85,6 +84,7 @@
         
         .falling-object {
             position: absolute;
+            top: -50px; /* Start position for JS transform */
             font-size: 3rem; 
             text-shadow: 0 0 10px rgba(0,0,0,0.5);
             cursor: pointer;
@@ -148,6 +148,7 @@
             font-weight: 600;
         }
 
+        /* NEW: Added Notification Toast back */
         #game-notification-toast {
             position: fixed;
             top: 20px;
@@ -219,7 +220,7 @@
             .falling-object { font-size: 2.5rem; }
             #game-ui { font-size: 1rem; padding: 8px 15px; }
             #game-over-message { font-size: 1.8rem; }
-            #game-notification-toast { font-size: 1.2rem; }
+            #game-notification-toast { font-size: 1.2rem; } /* Added back */
         }
         
     </style>
@@ -240,6 +241,7 @@
         <span>Score: </span><span id="score-display">0</span>
     </div>
     
+    <!-- NEW: Added Toast Element back -->
     <div id="game-notification-toast"></div>
     
     <div id="game-over-overlay">
@@ -352,11 +354,11 @@
             toggleStars(!isDaytime);
         }
 
-        // --- 5. UPDATED: Game Logic ---
+        // --- 5. Game Logic ---
         
         const gameContainer = document.getElementById('game-container');
         const scoreDisplay = document.getElementById('score-display');
-        const notificationToast = document.getElementById('game-notification-toast');
+        const notificationToast = document.getElementById('game-notification-toast'); // NEW: Added back
         const gameOverOverlay = document.getElementById('game-over-overlay');
         const gameOverMessage = document.getElementById('game-over-message');
         const restartBtn = document.getElementById('restart-btn');
@@ -370,30 +372,28 @@
         let spawnInterval;
         let animationFrameId;
 
-        // NEW: Master list of emojis for levels
+        // Emoji list (unchanged)
         const allEmojis = [
-            // Original list
-            '🍃', '🌸', '🍂', '⭐', '💎', '❤️', '🔥', '💧', '🌱', 
-            '🍁', '🍄', '🍎', '🍇', '🍉', '🍕', '🎁', '🎉', '💡',
-            
-            // Expanded list
-            '😀', '😂', '😍', '🥳', '😎', '👽', '👻', '🎃', '🤖', '👾',
-            '👐', '👍', '✌️', '👋', '🤟', '🧠', '👀', '👑', '🧥', '🧢',
-            '🐶', '🐱', '🐭', '🐹', '🦊', '🐻', '🐼', '🐨', '🐯', '🦁',
-            '🐮', '🐷', '🐸', '🐵', '🐔', '🐧', '🐦', '🐤', '🦋', '🐛',
-            '🐝', '🐞', '🦗', '🕷️', '🐢', '🐍', '🐙', '🐠', '🐳', '🐬',
-            '☀️', '🌙', '🌎', '🌋', '🌊', '🌈', '✨', '⚡', '💥', '❄️',
-            '🍔', '🍟', '🍣', '🍩', '🍪', '🍰', '🍭', '🍿', '🎹', '🎸',
-            '⚽', '🏀', '🏈', '⚾', '🎾', '🏐', '🎱', '🎯', '🎳', '🚀',
-            '✈️', '🚗', '🚲', '⛵', '⚓', '🚁', '🔑', '💡', '💰', '💎',
-            '📕', '📗', '📘', '📙', '💻', '📱', '⏰', '⏳', '💡', '💰',
-            '⚙️', '🔨', '⚔️', '🛡️', '🪄', '🎨', '🧩', '🎵', '💯', '✔️'
+            '🍃', '🌸', '🍂', '⭐', '💎', '❤️', '🔥', '💧', '🌱', '🍁', '🍄', '🍎', '🍇', '🍉', '🍕', '🎁', '🎉', '💡',
+            '😀', '😂', '😍', '🥳', '😎', '👽', '👻', '🎃', '🤖', '👾', '👐', '👍', '✌️', '👋', '🤟', '🧠', '👀', '👑',
+            '🐶', '🐱', '🐭', '🐹', '🦊', '🐻', '🐼', '🐨', '🐯', '🦁', '🐮', '🐷', '🐸', '🐵', '🐔', '🐧', '🐦', '🐤',
+            '🦋', '🐛', '🐝', '🐞', '🦗', '🕷️', '🐢', '🐍', '🐙', '🐠', '🐳', '🐬', '☀️', '🌙', '🌎', '🌋', '🌊', '🌈',
+            '✨', '⚡', '💥', '❄️', '🍔', '🍟', '🍣', '🍩', '🍪', '🍰', '🍭', '🍿', '🎹', '🎸', '⚽', '🏀', '🏈', '⚾',
+            '🎾', '🏐', '🎱', '🎯', '🎳', '🚀', '✈️', '🚗', '🚲', '⛵', '⚓', '🚁', '🔑', '💡', '💰', '💎', '📕', '📗',
+            '📘', '📙', '💻', '📱', '⏰', '⏳', '💡', '💰', '⚙️', '🔨', '⚔️', '🛡️', '🪄', '🎨', '🧩', '🎵', '💯', '✔️'
         ];
-        let levelEmojis = []; // This will hold the shuffled list for the current game
+        let levelEmojis = [];
+        
+        // 15 Level Effects (unchanged)
+        const allEffects = [
+            'SIZE_SMALL', 'SIZE_LARGE', 'ZIG_ZAG', 'SPIN_FAST', 'SPIN_SLOW', 
+            'FADE_PULSE', 'SPEED_VAR', 'TINT', 'DRIFT_LEFT', 'DRIFT_RIGHT', 
+            'SHRINK', 'GROW', 'ACCELERATE', 'BLUR_PULSE', 'INVISI_PULSE'
+        ];
+        let currentLevelEffects = [];
 
-        // NEW: Shuffle function (Fisher-Yates)
+
         function shuffleEmojis() {
-            // Create a copy of the master list
             let shuffled = [...allEmojis];
             for (let i = shuffled.length - 1; i > 0; i--) {
                 const j = Math.floor(Math.random() * (i + 1));
@@ -402,7 +402,7 @@
             levelEmojis = shuffled;
         }
 
-        // Static Star functions
+        // Static Star functions (unchanged)
         let stars = [];
         const numStars = 100;
         function createStars() {
@@ -427,6 +427,7 @@
             }, 0);
         }
 
+        // NEW: Added showNotification function back
         function showNotification(message, duration) {
             notificationToast.innerText = message;
             notificationToast.classList.add('active');
@@ -439,6 +440,25 @@
             baseSpawnRate = Math.max(500, 2000 - (gameScore * 15));
             clearInterval(spawnInterval);
             spawnInterval = setInterval(spawnWave, baseSpawnRate);
+        }
+        
+        // UPDATED: Now handles level logic based on your request
+        function assignRandomEffects() {
+            // Lvl 1-9: 1 effect
+            // Lvl 10+: 1 OR 2 effects (randomly)
+            // Max 2 effects
+            let numEffects = 1; 
+            
+            if (gameLevel >= 10) {
+                numEffects = Math.floor(Math.random() * 2) + 1; // Randomly 1 or 2
+            }
+            
+            currentLevelEffects = []; 
+            let shuffledEffects = [...allEffects].sort(() => 0.5 - Math.random());
+            
+            for (let i = 0; i < numEffects; i++) {
+                currentLevelEffects.push(shuffledEffects[i]);
+            }
         }
 
         function initGame() {
@@ -456,7 +476,8 @@
             baseFallSpeed = 1; 
             baseSpawnRate = 2000;
             
-            shuffleEmojis(); // NEW: Randomize the emoji list for this new game
+            shuffleEmojis();
+            assignRandomEffects(); // Assign effects for Level 1
             
             scoreDisplay.innerText = '0';
             gameOverOverlay.style.display = 'none';
@@ -482,23 +503,28 @@
             gameOverOverlay.style.display = 'grid';
         }
 
+        // UPDATED: Calls showNotification without effect names
         function increaseDifficulty() {
             gameLevel++;
-            showNotification(`Level ${gameLevel}!`, 1500);
+            assignRandomEffects(); // Get new effect combo for the new level
+            showNotification(`Level ${gameLevel}!`, 1500); // NEW: Announce level
         }
         
+        // UPDATED: Calls showNotification on first click
         function onObjectClick(e) {
             if (e.target.classList.contains('falling-object')) {
                 e.preventDefault();
                 
                 if (!gameIsActive) {
                     gameIsActive = true;
-                    showNotification('Game Started! Don\'t miss.', 1500);
+                    showNotification('Game Started!', 1500); // NEW: Announce game start
                 }
 
                 gameScore++;
                 scoreDisplay.innerText = gameScore;
-                baseFallSpeed = 1 + (gameScore * 0.05); 
+                
+                baseFallSpeed = Math.min(3.0, 1 + (gameScore * 0.05)); 
+                
                 updateSpawnInterval();
 
                 const clickedObj = gameObjects.find(obj => obj.el === e.target);
@@ -513,32 +539,131 @@
             }
         }
 
-        // UPDATED: spawnWave now uses the random levelEmojis list
         function spawnWave() {
-            // Get the emoji for the current level
-            // It loops back if gameLevel > number of emojis
             const emoji = levelEmojis[(gameLevel - 1) % levelEmojis.length];
             
             for (let i = 0; i < gameLevel; i++) {
                 const obj = document.createElement('div');
                 obj.className = 'falling-object';
-                obj.innerText = emoji; // Set the level's emoji
+                obj.innerText = emoji;
                 
                 obj.style.left = Math.random() * 90 + 5 + 'vw';
-                obj.style.top = '-50px';
                 
-                const speed = baseFallSpeed + (Math.random() * (gameLevel * 0.2 + 0.5));
+                // Set default styles
+                obj.style.filter = 'none';
+                obj.style.fontSize = '3rem';
+                obj.style.opacity = '1';
+                if (window.innerWidth <= 600) {
+                    obj.style.fontSize = '2.5rem';
+                }
+
+                let speed = baseFallSpeed + (Math.random() * 0.5);
                 
+                let objData = { 
+                    el: obj, 
+                    y: -50, 
+                    speed: 0, 
+                    effects: [...currentLevelEffects],
+                    xOffset: 0, 
+                    driftAmount: 0,
+                    tint: Math.random() * 360,
+                    age: 0 
+                };
+                
+                let filters = [];
+                
+                objData.effects.forEach(effect => {
+                    switch (effect) {
+                        case 'SPEED_VAR':
+                            speed = baseFallSpeed + (Math.random() * 3.0);
+                            break;
+                        case 'SIZE_SMALL':
+                            obj.style.fontSize = (parseFloat(obj.style.fontSize) * 0.75) + 'rem';
+                            break;
+                        case 'SIZE_LARGE':
+                             obj.style.fontSize = (parseFloat(obj.style.fontSize) * 1.25) + 'rem';
+                            break;
+                        case 'TINT':
+                            filters.push(`hue-rotate(${objData.tint}deg)`);
+                            break;
+                        case 'DRIFT_LEFT':
+                            objData.driftAmount = -0.3;
+                            break;
+                        case 'DRIFT_RIGHT':
+                            objData.driftAmount = 0.3;
+                            break;
+                    }
+                });
+                
+                obj.style.filter = filters.join(' ');
+                objData.speed = speed;
                 gameContainer.appendChild(obj);
-                gameObjects.push({ el: obj, y: -50, speed: speed });
+                gameObjects.push(objData);
             }
         }
 
         function gameLoop() {
             for (let i = gameObjects.length - 1; i >= 0; i--) {
                 const obj = gameObjects[i];
+                if (!obj) continue;
+
+                obj.age++;
+                let transformString = ``;
+                let xTranslate = 0;
+                let yTranslate = obj.y;
+                let rotate = 0;
+                let scale = 1;
+                let opacity = 1;
+                let filters = [];
+                if(obj.effects.includes('TINT')) { // Keep tint if it exists
+                    filters.push(`hue-rotate(${obj.tint}deg)`);
+                }
+                
+                obj.effects.forEach(effect => {
+                    switch(effect) {
+                        case 'ACCELERATE':
+                            obj.speed += 0.01;
+                            break;
+                        case 'ZIG_ZAG':
+                            xTranslate += Math.sin(obj.y / 50) * 30;
+                            break;
+                        case 'DRIFT_LEFT':
+                        case 'DRIFT_RIGHT':
+                            obj.xOffset += obj.driftAmount;
+                            xTranslate += obj.xOffset;
+                            break;
+                        case 'SPIN_FAST':
+                            rotate += obj.age * 5;
+                            break;
+                        case 'SPIN_SLOW':
+                            rotate += obj.age * 0.5;
+                            break;
+                        case 'SHRINK':
+                            scale = Math.max(0.2, 1 - (obj.y / window.innerHeight));
+                            break;
+                        case 'GROW':
+                            scale = 0.2 + (obj.y / window.innerHeight) * 1.5;
+                            break;
+                        case 'FADE_PULSE':
+                            opacity = 0.7 + (Math.sin(obj.age / 20) * 0.3);
+                            break;
+                        case 'INVISI_PULSE':
+                             opacity = 0.5 + (Math.sin(obj.age / 20) * 0.5);
+                            break;
+                        case 'BLUR_PULSE':
+                            filters.push(`blur(${Math.abs(Math.sin(obj.age / 30) * 3)}px)`);
+                            break;
+                    }
+                });
+
                 obj.y += obj.speed; 
-                obj.el.style.top = obj.y + 'px';
+                yTranslate = obj.y;
+                transformString = `translate(${xTranslate}px, ${yTranslate}px) rotate(${rotate}deg) scale(${scale})`;
+                
+                obj.el.style.transform = transformString;
+                obj.el.style.opacity = opacity;
+                obj.el.style.filter = filters.join(' ');
+
                 if (obj.y > window.innerHeight + 50) {
                     obj.el.remove();
                     gameObjects.splice(i, 1);
@@ -559,5 +684,4 @@
 
 </body>
 </html>
-
 
