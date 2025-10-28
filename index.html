@@ -15,17 +15,24 @@
             padding: 0;
             box-sizing: border-box;
             user-select: none;
+            -webkit-user-select: none;
+            -moz-user-select: none;
+            -ms-user-select: none;
+        }
+
+        html, body {
+            height: 100%;
+            width: 100%;
+            overflow: hidden; /* Prevent scrolling */
         }
 
         body {
             font-family: 'Poppins', sans-serif;
             color: #ffffff;
-            min-height: 100vh;
             display: grid;
             place-items: center;
             text-align: center;
             padding: 20px;
-            overflow: hidden;
             background: linear-gradient(135deg, #0f2027, #2c5364);
             transition: background 2.5s linear; 
         }
@@ -79,22 +86,52 @@
             top: 0; left: 0;
             width: 100%; height: 100%;
             z-index: 3; /* IN FRONT of countdown */
-            pointer-events: none;
+            cursor: none; /* Hide cursor, player follows touch/mouse */
+            -webkit-tap-highlight-color: transparent; /* Disable tap flash on mobile */
         }
         
-        .falling-object {
+        .game-object {
             position: absolute;
-            top: -50px; /* Start position for JS transform */
-            font-size: 3rem; 
+            transform: translate(-50%, -50%); /* Center emoji */
+            font-size: 2.5rem;
             text-shadow: 0 0 10px rgba(0,0,0,0.5);
-            cursor: pointer;
-            pointer-events: all; /* Make objects clickable */
-            transition: transform 0.1s ease-out; /* Pop effect on click */
+            transition: transform 0.1s ease-out;
+            pointer-events: none; /* Player/bullets don't block controls */
+        }
+
+        .player {
+            z-index: 10;
+            filter: drop-shadow(0 0 8px #fff);
+            font-size: 3rem;
+        }
+
+        .bullet {
+            z-index: 9;
+            font-size: 1.5rem;
         }
         
-        .falling-object:active {
-            transform: scale(1.5);
+        .enemy {
+            z-index: 8;
+            filter: drop-shadow(0 0 5px #f00);
         }
+
+        .enemy-bullet {
+            z-index: 7;
+            font-size: 1rem;
+            filter: drop-shadow(0 0 5px #f87171);
+        }
+
+        .power-up {
+            z-index: 11;
+            font-size: 2rem;
+            animation: pulse 1s infinite;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { transform: translate(-50%, -50%) scale(1); filter: drop-shadow(0 0 8px #0f0); }
+            50% { transform: translate(-50%, -50%) scale(1.2); filter: drop-shadow(0 0 15px #0f0); }
+        }
+
 
         /* --- 4. Main Content Container --- */
         .container {
@@ -102,6 +139,7 @@
             width: 100%;
             position: relative;
             z-index: 2; /* BEHIND game */
+            pointer-events: none; /* Allow game clicks to go through */
         }
 
         h1, p { text-shadow: 0 2px 5px rgba(0,0,0,0.3); }
@@ -125,7 +163,6 @@
             padding: 1.5rem 2rem;
             min-width: 140px;
             box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
-            pointer-events: none; 
         }
 
         .number { display: block; font-size: 3.5rem; font-weight: 600; }
@@ -138,17 +175,18 @@
         #game-ui {
             position: fixed;
             top: 20px;
-            right: 20px;
+            left: 20px;
             z-index: 100; /* On top of game */
             background: rgba(0,0,0,0.3);
             backdrop-filter: blur(5px);
             padding: 10px 20px;
             border-radius: 12px;
-            font-size: 1.5rem;
+            font-size: 1.2rem; /* Adjusted for more info */
             font-weight: 600;
+            text-align: left;
+            line-height: 1.6;
         }
 
-        /* NEW: Added Notification Toast back */
         #game-notification-toast {
             position: fixed;
             top: 20px;
@@ -182,6 +220,7 @@
             flex-direction: column;
             gap: 20px;
             padding: 20px;
+            text-align: center;
         }
         
         #game-over-message {
@@ -189,6 +228,7 @@
             font-weight: 700;
             color: #fff;
             text-align: center;
+            line-height: 1.4;
         }
         
         #restart-btn {
@@ -208,18 +248,19 @@
             transform: scale(1.05);
         }
 
+        /* --- 8. Version Label --- */
         #version-label {
             position: fixed;
             bottom: 10px;
             left: 10px;
+            z-index: 98;
             font-size: 0.75rem;
-            color: rgba(255, 255, 255, 0.4);
-            z-index: 100;
+            color: rgba(255,255,255,0.3);
             pointer-events: none;
-            font-weight: 300;
         }
 
-        /* --- 8. Responsive Design --- */
+
+        /* --- 9. Responsive Design --- */
         @media (max-width: 600px) {
             h1 { font-size: 2rem; }
             p { font-size: 1rem; }
@@ -228,10 +269,14 @@
             .number { font-size: 2.5rem; }
             .label { font-size: 0.75rem; }
             #sun, #moon { width: 30px; height: 30px; }
-            .falling-object { font-size: 2.5rem; }
+
+            .game-object { font-size: 2rem; }
+            .player { font-size: 2.5rem; }
+            .power-up { font-size: 1.8rem; }
+            
             #game-ui { font-size: 1rem; padding: 8px 15px; }
             #game-over-message { font-size: 1.8rem; }
-            #game-notification-toast { font-size: 1.2rem; } /* Added back */
+            #game-notification-toast { font-size: 1.2rem; }
         }
         
     </style>
@@ -245,14 +290,16 @@
     </div>
     
     <div id="game-container">
-        <!-- Falling game objects will be added here by JS -->
+        <!-- Player, enemies, bullets added by JS -->
     </div>
     
     <div id="game-ui">
-        <span>Score: </span><span id="score-display">0</span>
+        <span>Score: </span><span id="score-display">0</span><br>
+        <span>Wave: </span><span id="wave-display">1</span><br>
+        <span>Lives: </span><span id="lives-display">3</span><br>
+        <span>Time: </span><span id="time-display">0s</span>
     </div>
     
-    <!-- NEW: Added Toast Element back -->
     <div id="game-notification-toast"></div>
     
     <div id="game-over-overlay">
@@ -289,26 +336,16 @@
         
     </main>
 
-    <div id="version-label">
-        Version 1.1
-    </div>
+    <div id="version-label">Version 2.2</div>
 
     <script>
         // --- 1. Set the Target Date ---
         const currentYear = new Date().getFullYear();
-        // NOTE: The user's code had 2025 hardcoded. 
-        // We'll check if the current date is *after* the target date in the *current* year.
-        // If it is, we'll set the target to next year.
-        let targetDateCheck = new Date(`${currentYear}-12-22T11:55:00+01:00`);
-        let targetYear = currentYear;
-
-        if (targetDateCheck - new Date() < 0) {
-            // If the date has already passed this year, set it to next year
-            targetYear = currentYear + 1;
+        let targetDate = new Date(`2025-12-22T11:55:00+01:00`); 
+        if (targetDate - new Date() < 0) {
+            targetDate = new Date(`${currentYear + 1}-12-22T11:55:00+01:00`); 
         }
-        
-        const targetDate = new Date(`${targetYear}-12-22T11:55:00+01:00`);
-        
+
         // --- 2. Get DOM Elements ---
         const daysEl = document.getElementById('days');
         const hoursEl = document.getElementById('hours');
@@ -321,7 +358,7 @@
         const moonEl = document.getElementById('moon');
         const celestialContainer = document.getElementById('celestial-container'); 
 
-        // --- 3. Day/Night Cycle Logic (Unchanged) ---
+        // --- 3. Day/Night Cycle Logic ---
         const skyColors = {
             midnight: { top: 'rgb(0, 5, 20)', bottom: 'rgb(0, 0, 0)' },
             sunrise:  { top: 'rgb(135, 206, 250)', bottom: 'rgb(255, 170, 80)' },
@@ -335,14 +372,14 @@
         }
         function updateSky(totalMinutes) {
             let c1, c2, p;
-            if (totalMinutes < 360) { p = totalMinutes / 360; c1 = skyColors.midnight; c2 = skyColors.sunrise; } // 00:00 - 06:00
-            else if (totalMinutes < 720) { p = (totalMinutes - 360) / 360; c1 = skyColors.sunrise; c2 = skyColors.noon; } // 06:00 - 12:00
-            else if (totalMinutes < 1080) { p = (totalMinutes - 720) / 360; c1 = skyColors.noon; c2 = skyColors.sunset; } // 12:00 - 18:00
-            else { p = (totalMinutes - 1080) / 360; c1 = skyColors.sunset; c2 = skyColors.midnight; } // 18:00 - 24:00
+            if (totalMinutes < 360) { p = totalMinutes / 360; c1 = skyColors.midnight; c2 = skyColors.sunrise; }
+            else if (totalMinutes < 720) { p = (totalMinutes - 360) / 360; c1 = skyColors.sunrise; c2 = skyColors.noon; }
+            else if (totalMinutes < 1080) { p = (totalMinutes - 720) / 360; c1 = skyColors.noon; c2 = skyColors.sunset; }
+            else { p = (totalMinutes - 1080) / 360; c1 = skyColors.sunset; c2 = skyColors.midnight; }
             bodyEl.style.background = `linear-gradient(to bottom, ${interpolateColor(c1.top, c2.top, p)}, ${interpolateColor(c1.bottom, c2.bottom, p)})`;
         }
         function updateCelestialBodies(totalMinutes) {
-            const isDay = totalMinutes >= 360 && totalMinutes < 1080; // 6am to 6pm
+            const isDay = totalMinutes >= 360 && totalMinutes < 1080;
             let percent = isDay ? (totalMinutes - 360) / 720 : (totalMinutes >= 1080 ? totalMinutes - 1080 : totalMinutes + 360) / 720;
             const angle = (1 - percent) * Math.PI;
             const x = 50 + 50 * Math.cos(angle); 
@@ -353,15 +390,16 @@
         }
 
         // --- 4. Main Countdown Update Function ---
+        let mainCountdownTimer;
         function updateCountdown() {
             const now = new Date();
             const diff = targetDate - now;
             if (diff <= 0) {
-                clearInterval(timerInterval);
+                clearInterval(mainCountdownTimer);
                 countdownContainer.style.display = 'none';
                 expiryMessage.style.display = 'block';
                 bodyEl.style.background = `linear-gradient(120deg, #89f7fe, #fdfc47)`;
-                stopGame();
+                stopGame(); // Stop the game if countdown finishes
                 toggleStars(false); 
                 return;
             }
@@ -377,55 +415,7 @@
             toggleStars(!isDaytime);
         }
 
-        // --- 5. Game Logic ---
-        
-        const gameContainer = document.getElementById('game-container');
-        const scoreDisplay = document.getElementById('score-display');
-        const notificationToast = document.getElementById('game-notification-toast'); // NEW: Added back
-        const gameOverOverlay = document.getElementById('game-over-overlay');
-        const gameOverMessage = document.getElementById('game-over-message');
-        const restartBtn = document.getElementById('restart-btn');
-
-        let gameIsActive = false;
-        let gameScore = 0;
-        let gameLevel = 1;
-        let baseFallSpeed = 1;
-        let baseSpawnRate = 2000;
-        let gameObjects = [];
-        let spawnInterval;
-        let animationFrameId;
-
-        // Emoji list (unchanged)
-        const allEmojis = [
-            '🍃', '🌸', '🍂', '⭐', '💎', '❤️', '🔥', '💧', '🌱', '🍁', '🍄', '🍎', '🍇', '🍉', '🍕', '🎁', '🎉', '💡',
-            '😀', '😂', '😍', '🥳', '😎', '👽', '👻', '🎃', '🤖', '👾', '👐', '👍', '✌️', '👋', '🤟', '🧠', '👀', '👑',
-            '🐶', '🐱', '🐭', '🐹', '🦊', '🐻', '🐼', '🐨', '🐯', '🦁', '🐮', '🐷', '🐸', '🐵', '🐔', '🐧', '🐦', '🐤',
-            '🦋', '🐛', '🐝', '🐞', '🦗', '🕷️', '🐢', '🐍', '🐙', '🐠', '🐳', '🐬', '☀️', '🌙', '🌎', '🌋', '🌊', '🌈',
-            '✨', '⚡', '💥', '❄️', '🍔', '🍟', '🍣', '🍩', '🍪', '🍰', '🍭', '🍿', '🎹', '🎸', '⚽', '🏀', '🏈', '⚾',
-            '🎾', '🏐', '🎱', '🎯', '🎳', '🚀', '✈️', '🚗', '🚲', '⛵', '⚓', '🚁', '🔑', '💡', '💰', '💎', '📕', '📗',
-            '📘', '📙', '💻', '📱', '⏰', '⏳', '💡', '💰', '⚙️', '🔨', '⚔️', '🛡️', '🪄', '🎨', '🧩', '🎵', '💯', '✔️'
-        ];
-        let levelEmojis = [];
-        
-        // 15 Level Effects (unchanged)
-        const allEffects = [
-            'SIZE_SMALL', 'SIZE_LARGE', 'ZIG_ZAG', 'SPIN_FAST', 'SPIN_SLOW', 
-            'FADE_PULSE', 'SPEED_VAR', 'TINT', 'DRIFT_LEFT', 'DRIFT_RIGHT', 
-            'SHRINK', 'GROW', 'ACCELERATE', 'BLUR_PULSE', 'INVISI_PULSE'
-        ];
-        let currentLevelEffects = [];
-
-
-        function shuffleEmojis() {
-            let shuffled = [...allEmojis];
-            for (let i = shuffled.length - 1; i > 0; i--) {
-                const j = Math.floor(Math.random() * (i + 1));
-                [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
-            }
-            levelEmojis = shuffled;
-        }
-
-        // Static Star functions (unchanged)
+        // --- 5. Static Star Logic ---
         let stars = [];
         const numStars = 100;
         function createStars() {
@@ -450,269 +440,654 @@
             }, 0);
         }
 
-        // NEW: Added showNotification function back
-        function showNotification(message, duration) {
+        // --- 6. Game Logic ---
+
+        // --- 6a. Game DOM Elements ---
+        const gameContainer = document.getElementById('game-container');
+        const scoreDisplay = document.getElementById('score-display');
+        const waveDisplay = document.getElementById('wave-display');
+        const livesDisplay = document.getElementById('lives-display');
+        const timeDisplay = document.getElementById('time-display');
+        const notificationToast = document.getElementById('game-notification-toast');
+        const gameOverOverlay = document.getElementById('game-over-overlay');
+        const gameOverMessage = document.getElementById('game-over-message');
+        const restartBtn = document.getElementById('restart-btn');
+
+        // --- 6b. Game State & Config ---
+        let player = {};
+        let gameState = {};
+        let gameTimers = {};
+        const allEnemies = ['👾', '👻', '👽', '🎃', '🤖', '💀', '👹', '👺', '🤡', '🦇', '🕷️', '🦂', '🐍'];
+        const allPowerUps = [
+            { id: 'TRIPLE_SHOT', icon: '🔱', name: 'Triple Shot' },
+            { id: 'RAPID_FIRE', icon: '🔥', name: 'Rapid Fire' },
+            { id: 'SHIELD', icon: '🛡️', name: 'Shield' },
+            { id: 'BIG_BANANAS', icon: '💥', name: 'Big Bananas' },
+            { id: 'PIERCE_SHOT', icon: '💎', name: 'Pierce Shot' },
+            { id: 'SIDE_SHOTS', icon: '↔️', name: 'Side Shots' },
+            { id: 'LIFE_UP', icon: '❤️', name: 'Extra Life' },
+            { id: 'NUKE', icon: '💣', name: 'Nuke' },
+            { id: 'SLOW_MO', icon: '⏳', name: 'Slow Mo' },
+            { id: 'COIN_BONUS', icon: '💰', name: 'Coin Bonus' },
+        ];
+
+        // --- 6c. Utility Functions ---
+        function pxToVw(px) { return (px / window.innerWidth) * 100; }
+        function pxToVh(px) { return (px / window.innerHeight) * 100; }
+        function rand(min, max) { return Math.random() * (max - min) + min; }
+        
+        function showNotification(message, duration = 2000) {
             notificationToast.innerText = message;
             notificationToast.classList.add('active');
             setTimeout(() => {
                 notificationToast.classList.remove('active');
             }, duration);
         }
-        
-        function updateSpawnInterval() {
-            baseSpawnRate = Math.max(500, 2000 - (gameScore * 15));
-            clearInterval(spawnInterval);
-            spawnInterval = setInterval(spawnWave, baseSpawnRate);
-        }
-        
-        // UPDATED: Now handles level logic based on your request
-        function assignRandomEffects() {
-            // Lvl 1-9: 1 effect
-            // Lvl 10+: 1 OR 2 effects (randomly)
-            // Max 2 effects
-            let numEffects = 1; 
-            
-            if (gameLevel >= 10) {
-                numEffects = Math.floor(Math.random() * 2) + 1; // Randomly 1 or 2
-            }
-            
-            currentLevelEffects = []; 
-            let shuffledEffects = [...allEffects].sort(() => 0.5 - Math.random());
-            
-            for (let i = 0; i < numEffects; i++) {
-                currentLevelEffects.push(shuffledEffects[i]);
-            }
+
+        function isColliding(objA, objB) {
+            // Simple circular collision detection
+            const dx = objA.x - objB.x;
+            const dy = (objA.y - objB.y) * 1.5; // Account for vh/vw difference
+            const distance = Math.sqrt(dx * dx + dy * dy);
+            return distance < (objA.size + objB.size) / 2;
         }
 
+        // --- 6d. Game Setup ---
         function initGame() {
-            document.addEventListener('mousedown', onObjectClick);
-            document.addEventListener('touchstart', onObjectClick);
+            // Player movement listeners
+            gameContainer.addEventListener('mousemove', handlePlayerMove);
+            gameContainer.addEventListener('touchmove', handlePlayerMove, { passive: false });
+            // Restart listener
             restartBtn.addEventListener('click', startGame);
+            
             createStars();
             startGame();
         }
 
         function startGame() {
-            gameIsActive = false;
-            gameScore = 0;
-            gameLevel = 1; 
-            baseFallSpeed = 1; 
-            baseSpawnRate = 2000;
+            // Clear all old game objects
+            gameState.enemies?.forEach(e => e.el.remove());
+            gameState.bullets?.forEach(b => b.el.remove());
+            gameState.enemyBullets?.forEach(b => b.el.remove());
+            gameState.powerUps?.forEach(p => p.el.remove());
+            player.el?.remove();
             
-            shuffleEmojis();
-            assignRandomEffects(); // Assign effects for Level 1
+            // Clear all game intervals
+            clearInterval(gameTimers.spawnInterval);
+            clearInterval(gameTimers.waveInterval);
+            clearInterval(gameTimers.powerUpInterval);
+            clearInterval(gameTimers.survivalTimer);
+            cancelAnimationFrame(gameTimers.gameLoopId);
             
-            scoreDisplay.innerText = '0';
+            // Reset game state
+            gameState = {
+                isRunning: true,
+                score: 0,
+                wave: 1,
+                lives: 3,
+                survivalTime: 0,
+                isSlowMo: false,
+                enemies: [],
+                bullets: [],
+                enemyBullets: [],
+                powerUps: [],
+                maxEnemies: 5,
+                enemySpawnRate: 1500, // ms
+            };
+
+            // Reset player
+            player = {
+                x: 50, // vw
+                y: 85, // vh
+                size: 4, // for collision
+                el: null,
+                shootInterval: null,
+                lastShotTime: 0,
+                powerUp: null,
+                powerUpTimer: null,
+                hasShield: false,
+                shieldEl: null,
+            };
+
+            createPlayer();
+            startShooting();
+
+            // Hide game over screen
             gameOverOverlay.style.display = 'none';
-            gameObjects.forEach(obj => obj.el.remove());
-            gameObjects = [];
+            updateUI();
+
+            // Start game timers
+            gameTimers.waveInterval = setInterval(increaseWave, 10000); // New wave every 10s
+            gameTimers.spawnInterval = setInterval(spawnEnemy, gameState.enemySpawnRate);
+            gameTimers.powerUpInterval = setInterval(spawnPowerUp, 15000); // Power-up every 15s
+            gameTimers.survivalTimer = setInterval(() => {
+                gameState.survivalTime++;
+                updateUI();
+            }, 1000);
+
+            // Start the main game loop
+            gameTimers.gameLoopId = requestAnimationFrame(gameLoop);
             
-            clearInterval(spawnInterval);
-            spawnInterval = setInterval(spawnWave, baseSpawnRate); 
-            
-            cancelAnimationFrame(animationFrameId);
-            gameLoop();
+            showNotification('Game Started!', 1500);
         }
 
         function stopGame() {
-            clearInterval(spawnInterval);
-            cancelAnimationFrame(animationFrameId);
-            gameIsActive = false;
+            gameState.isRunning = false;
+            clearInterval(gameTimers.spawnInterval);
+            clearInterval(gameTimers.waveInterval);
+            clearInterval(gameTimers.powerUpInterval);
+            clearInterval(gameTimers.survivalTimer);
+            clearInterval(player.shootInterval);
+            cancelAnimationFrame(gameTimers.gameLoopId);
         }
 
         function gameOver() {
             stopGame();
-            gameOverMessage.innerHTML = `Game Over!<br>Final Score: ${gameScore}`;
+            gameOverMessage.innerHTML = `Game Over!<br>Score: ${gameState.score}<br>Time: ${gameState.survivalTime}s`;
             gameOverOverlay.style.display = 'grid';
+            
+            // Player explosion effect
+            if (player.el) {
+                player.el.innerHTML = '💥';
+                player.el.style.transform += ' scale(2)';
+            }
         }
 
-        // UPDATED: Calls showNotification without effect names
-        function increaseDifficulty() {
-            gameLevel++;
-            assignRandomEffects(); // Get new effect combo for the new level
-            showNotification(`Level ${gameLevel}!`, 1500); // NEW: Announce level
+        function updateUI() {
+            scoreDisplay.innerText = gameState.score;
+            waveDisplay.innerText = gameState.wave;
+            livesDisplay.innerText = '❤️'.repeat(gameState.lives);
+            timeDisplay.innerText = `${gameState.survivalTime}s`;
+        }
+
+        // --- 6e. Player Logic ---
+        function createPlayer() {
+            player.el = document.createElement('div');
+            player.el.className = 'game-object player';
+            player.el.innerHTML = '🐒';
+            gameContainer.appendChild(player.el);
+            updatePlayerPosition();
+        }
+
+        function handlePlayerMove(e) {
+            if (!gameState.isRunning) return;
+            if (e.type.includes('touch')) e.preventDefault(); // Prevent screen scrolling
+
+            let clientX, clientY;
+            if (e.type.includes('touch')) {
+                clientX = e.touches[0].clientX;
+                clientY = e.touches[0].clientY;
+            } else {
+                clientX = e.clientX;
+                clientY = e.clientY;
+            }
+
+            player.x = Math.max(5, Math.min(95, pxToVw(clientX))); // 5% from edges
+            player.y = Math.max(10, Math.min(95, pxToVh(clientY))); // 10% top, 5% bottom
         }
         
-        // UPDATED: Calls showNotification on first click
-        function onObjectClick(e) {
-            if (e.target.classList.contains('falling-object')) {
-                e.preventDefault();
-                
-                if (!gameIsActive) {
-                    gameIsActive = true;
-                    showNotification('Game Started!', 1500); // NEW: Announce game start
-                }
-
-                gameScore++;
-                scoreDisplay.innerText = gameScore;
-                
-                baseFallSpeed = Math.min(3.0, 1 + (gameScore * 0.05)); 
-                
-                updateSpawnInterval();
-
-                const clickedObj = gameObjects.find(obj => obj.el === e.target);
-                if (clickedObj) {
-                    clickedObj.el.remove();
-                    gameObjects = gameObjects.filter(obj => obj !== clickedObj);
-                }
-                
-                if (gameScore % 10 === 0) {
-                    increaseDifficulty();
-                }
-            }
+        function updatePlayerPosition() {
+            if (!player.el) return;
+            player.el.style.left = `${player.x}vw`;
+            player.el.style.top = `${player.y}vh`;
         }
 
-        function spawnWave() {
-            const emoji = levelEmojis[(gameLevel - 1) % levelEmojis.length];
+        function startShooting() {
+            clearInterval(player.shootInterval);
+            let shootRate = (player.powerUp === 'RAPID_FIRE') ? 100 : 250; // ms
             
-            for (let i = 0; i < gameLevel; i++) {
-                const obj = document.createElement('div');
-                obj.className = 'falling-object';
-                obj.innerText = emoji;
-                
-                obj.style.left = Math.random() * 90 + 5 + 'vw';
-                
-                // Set default styles
-                obj.style.filter = 'none';
-                obj.style.fontSize = '3rem';
-                obj.style.opacity = '1';
-                if (window.innerWidth <= 600) {
-                    obj.style.fontSize = '2.5rem';
-                }
+            player.shootInterval = setInterval(() => {
+                if (gameState.isRunning) createBullet();
+            }, shootRate);
+        }
 
-                let speed = baseFallSpeed + (Math.random() * 0.5);
-                
-                let objData = { 
-                    el: obj, 
-                    y: -50, 
-                    speed: 0, 
-                    effects: [...currentLevelEffects],
-                    xOffset: 0, 
-                    driftAmount: 0,
-                    tint: Math.random() * 360,
-                    age: 0 
+        function createBullet() {
+            const now = Date.now();
+            if (now - player.lastShotTime < 50) return; // Anti-spam for single shots
+            player.lastShotTime = now;
+
+            let bulletsToCreate = [];
+            let baseBullet = { x: player.x, y: player.y - 3, dy: -2, piercing: false, size: 1.5 };
+
+            if (player.powerUp === 'BIG_BANANAS') baseBullet.size = 3;
+            if (player.powerUp === 'PIERCE_SHOT') baseBullet.piercing = true;
+
+            bulletsToCreate.push({ ...baseBullet });
+
+            if (player.powerUp === 'TRIPLE_SHOT') {
+                bulletsToCreate.push({ ...baseBullet, x: player.x - 3, dx: -0.3 });
+                bulletsToCreate.push({ ...baseBullet, x: player.x + 3, dx: 0.3 });
+            }
+            if (player.powerUp === 'SIDE_SHOTS') {
+                bulletsToCreate.push({ ...baseBullet, dx: -1.5, dy: -0.5 });
+                bulletsToCreate.push({ ...baseBullet, dx: 1.5, dy: -0.5 });
+            }
+
+            bulletsToCreate.forEach(bData => {
+                const el = document.createElement('div');
+                el.className = 'game-object bullet';
+                el.innerHTML = '🍌';
+                el.style.left = `${bData.x}vw`;
+                el.style.top = `${bData.y}vh`;
+                el.style.fontSize = `${bData.size}rem`;
+                if (bData.piercing) el.style.filter = 'drop-shadow(0 0 5px #00ffff)';
+
+                let bullet = {
+                    el: el,
+                    x: bData.x, y: bData.y,
+                    dx: bData.dx || 0,
+                    dy: bData.dy || -2,
+                    piercing: bData.piercing || false,
+                    size: bData.size,
                 };
-                
-                let filters = [];
-                
-                objData.effects.forEach(effect => {
-                    switch (effect) {
-                        case 'SPEED_VAR':
-                            speed = baseFallSpeed + (Math.random() * 3.0);
-                            break;
-                        case 'SIZE_SMALL':
-                            obj.style.fontSize = (parseFloat(obj.style.fontSize) * 0.75) + 'rem';
-                            break;
-                        case 'SIZE_LARGE':
-                             obj.style.fontSize = (parseFloat(obj.style.fontSize) * 1.25) + 'rem';
-                            break;
-                        case 'TINT':
-                            filters.push(`hue-rotate(${objData.tint}deg)`);
-                            break;
-                        case 'DRIFT_LEFT':
-                            objData.driftAmount = -0.3;
-                            break;
-                        case 'DRIFT_RIGHT':
-                            objData.driftAmount = 0.3;
-                            break;
-                    }
-                });
-                
-                obj.style.filter = filters.join(' ');
-                objData.speed = speed;
-                gameContainer.appendChild(obj);
-                gameObjects.push(objData);
+                gameState.bullets.push(bullet);
+                gameContainer.appendChild(el);
+            });
+        }
+
+        function updateBullets() {
+            for (let i = gameState.bullets.length - 1; i >= 0; i--) {
+                let b = gameState.bullets[i];
+                b.x += b.dx;
+                b.y += b.dy;
+                b.el.style.left = `${b.x}vw`;
+                b.el.style.top = `${b.y}vh`;
+
+                if (b.y < -5) { // Remove if off-screen (top)
+                    b.el.remove();
+                    gameState.bullets.splice(i, 1);
+                }
+            }
+        }
+        
+        function playerHit() {
+            if (player.hasShield) {
+                player.hasShield = false;
+                player.shieldEl.remove();
+                player.shieldEl = null;
+                showNotification('Shield lost!', 1000);
+                return;
+            }
+
+            gameState.lives--;
+            updateUI();
+            
+            if (player.el) { // Flash player red
+                player.el.style.filter = 'drop-shadow(0 0 10px #f00) grayscale(1)';
+                setTimeout(() => {
+                    if (player.el) player.el.style.filter = 'drop-shadow(0 0 8px #fff)';
+                }, 200);
+            }
+
+            if (gameState.lives <= 0) {
+                gameOver();
+            } else {
+                showNotification('Ouch!', 1000);
             }
         }
 
+
+        // --- 6f. Wave & Difficulty Logic ---
+        function increaseWave() {
+            if (!gameState.isRunning) return;
+
+            gameState.wave++;
+            showNotification(`Wave ${gameState.wave}!`, 1500);
+            updateUI();
+
+            // Increase difficulty
+            gameState.maxEnemies = Math.min(30, 5 + gameState.wave); // Max 30 enemies
+            let newSpawnRate = Math.max(200, 1500 - (gameState.wave * 50)); // Min 200ms spawn
+            
+            if (gameState.isSlowMo) {
+                newSpawnRate *= 2; // Keep it slow if slow-mo is active
+            }
+            gameState.enemySpawnRate = newSpawnRate;
+
+            // Reset spawn interval with new rate
+            clearInterval(gameTimers.spawnInterval);
+            gameTimers.spawnInterval = setInterval(spawnEnemy, gameState.enemySpawnRate);
+        }
+
+        // --- 6g. Enemy Logic ---
+        function spawnEnemy() {
+            if (!gameState.isRunning || gameState.enemies.length >= gameState.maxEnemies) {
+                return;
+            }
+
+            const el = document.createElement('div');
+            el.className = 'game-object enemy';
+            el.innerHTML = allEnemies[Math.floor(Math.random() * allEnemies.length)];
+            
+            const sizeVw = rand(2.5, 4 + gameState.wave * 0.1);
+            const health = Math.max(1, Math.floor(sizeVw / 2));
+            
+            let movementType = 'drift';
+            if (gameState.wave > 3 && Math.random() > 0.5) movementType = 'zig-zag';
+            if (gameState.wave > 7 && Math.random() > 0.7) movementType = 'swoop';
+            
+            let shoots = false;
+            if (gameState.wave > 4 && Math.random() > (0.8 - gameState.wave * 0.01)) {
+                shoots = true;
+            }
+
+            let enemy = {
+                el: el,
+                x: rand(10, 90), // vw
+                y: -10, // vh
+                dx: rand(-0.2, 0.2),
+                dy: rand(0.2, 0.5 + gameState.wave * 0.05) * (gameState.isSlowMo ? 0.5 : 1),
+                size: sizeVw,
+                health: health,
+                maxHealth: health,
+                movement: movementType,
+                moveCounter: 0,
+                shoots: shoots,
+                shootCooldown: rand(2000, 5000),
+                lastShot: Date.now(),
+            };
+            
+            el.style.left = `${enemy.x}vw`;
+            el.style.top = `${enemy.y}vh`;
+            el.style.fontSize = `${sizeVw / 1.5}rem`; // Visual size
+            
+            gameState.enemies.push(enemy);
+            gameContainer.appendChild(el);
+        }
+
+        function updateEnemies() {
+            const now = Date.now();
+            for (let i = gameState.enemies.length - 1; i >= 0; i--) {
+                let e = gameState.enemies[i];
+                let speedMultiplier = gameState.isSlowMo ? 0.5 : 1;
+                
+                // Base movement
+                e.y += e.dy * speedMultiplier;
+                e.x += e.dx * speedMultiplier;
+                e.moveCounter++;
+
+                // Special movements
+                if (e.movement === 'zig-zag') {
+                    e.x += Math.sin(e.moveCounter / 30) * 0.5 * speedMultiplier;
+                } else if (e.movement === 'swoop') {
+                    e.dy += 0.01 * speedMultiplier; // Accelerate
+                }
+                
+                // Wall bouncing
+                if (e.x < 5 || e.x > 95) e.dx *= -1;
+
+                // Update element position
+                e.el.style.left = `${e.x}vw`;
+                e.el.style.top = `${e.y}vh`;
+                
+                // Enemy shooting
+                if (e.shoots && now - e.lastShot > e.shootCooldown) {
+                    createEnemyBullet(e);
+                    e.lastShot = now;
+                    e.shootCooldown = rand(3000, 6000) / (1 + gameState.wave * 0.1); // Shoot faster at high waves
+                }
+
+                // Remove if off-screen (bottom)
+                if (e.y > 110) {
+                    e.el.remove();
+                    gameState.enemies.splice(i, 1);
+                    if (gameState.isRunning) playerHit(); // Player takes damage if enemy gets past
+                }
+            }
+        }
+        
+        function createEnemyBullet(enemy) {
+            const el = document.createElement('div');
+            el.className = 'game-object enemy-bullet';
+            el.innerHTML = '🔥';
+            
+            let bullet = {
+                el: el,
+                x: enemy.x,
+                y: enemy.y,
+                dx: 0,
+                dy: 2 * (gameState.isSlowMo ? 0.5 : 1),
+                size: 1.5,
+            };
+
+            el.style.left = `${bullet.x}vw`;
+            el.style.top = `${bullet.y}vh`;
+
+            gameState.enemyBullets.push(bullet);
+            gameContainer.appendChild(el);
+        }
+        
+        function updateEnemyBullets() {
+             for (let i = gameState.enemyBullets.length - 1; i >= 0; i--) {
+                let b = gameState.enemyBullets[i];
+                let speedMultiplier = gameState.isSlowMo ? 0.5 : 1;
+                
+                b.x += b.dx * speedMultiplier;
+                b.y += b.dy * speedMultiplier;
+                b.el.style.left = `${b.x}vw`;
+                b.el.style.top = `${b.y}vh`;
+
+                // Remove if off-screen (bottom)
+                if (b.y > 105) {
+                    b.el.remove();
+                    gameState.enemyBullets.splice(i, 1);
+                }
+            }
+        }
+        
+        function damageEnemy(enemy, bullet, bulletIndex, enemyIndex) {
+            // Hit effect
+            enemy.el.style.opacity = '0.5';
+            setTimeout(() => {
+                if (enemy.el) enemy.el.style.opacity = '1';
+            }, 100);
+
+            // Remove bullet (unless piercing)
+            if (!bullet.piercing) {
+                bullet.el.remove();
+                gameState.bullets.splice(bulletIndex, 1);
+            }
+
+            enemy.health--;
+            
+            if (enemy.health <= 0) {
+                // Kill enemy
+                enemy.el.remove();
+                gameState.enemies.splice(enemyIndex, 1);
+                gameState.score += 1; // 1 point per kill
+                updateUI();
+            } else {
+                // Update health bar (visual tint)
+                const healthPercent = enemy.health / enemy.maxHealth;
+                enemy.el.style.filter = `drop-shadow(0 0 5px #f00) opacity(${0.5 + healthPercent * 0.5})`;
+            }
+        }
+
+        // --- 6h. Power-Up Logic ---
+        function spawnPowerUp() {
+            if (!gameState.isRunning) return;
+            
+            const pInfo = allPowerUps[Math.floor(Math.random() * allPowerUps.length)];
+            const el = document.createElement('div');
+            el.className = 'game-object power-up';
+            el.innerHTML = pInfo.icon;
+            
+            let powerUp = {
+                el: el,
+                id: pInfo.id,
+                name: pInfo.name,
+                x: rand(10, 90),
+                y: -10,
+                dy: 0.5 * (gameState.isSlowMo ? 0.5 : 1),
+                size: 3,
+            };
+
+            el.style.left = `${powerUp.x}vw`;
+            el.style.top = `${powerUp.y}vh`;
+            
+            gameState.powerUps.push(powerUp);
+            gameContainer.appendChild(el);
+        }
+
+        function updatePowerUps() {
+            for (let i = gameState.powerUps.length - 1; i >= 0; i--) {
+                let p = gameState.powerUps[i];
+                p.y += p.dy * (gameState.isSlowMo ? 0.5 : 1);
+                p.el.style.top = `${p.y}vh`;
+                
+                if (p.y > 105) { // Remove if off-screen
+                    p.el.remove();
+                    gameState.powerUps.splice(i, 1);
+                }
+            }
+        }
+
+        function collectPowerUp(powerUp, index) {
+            powerUp.el.remove();
+            gameState.powerUps.splice(index, 1);
+            showNotification(powerUp.name, 2000);
+            
+            // Clear any existing power-up timers/effects
+            clearTimeout(player.powerUpTimer);
+            if (player.powerUp === 'RAPID_FIRE') startShooting(); // Reset to normal speed
+            if (player.powerUp === 'SLOW_MO') setSlowMo(false);
+            player.powerUp = powerUp.id;
+
+            // Activate new power-up
+            switch (powerUp.id) {
+                case 'LIFE_UP':
+                    gameState.lives++;
+                    updateUI();
+                    player.powerUp = null; // Instant effect
+                    break;
+                case 'NUKE':
+                    gameState.enemies.forEach(e => {
+                        e.el.remove();
+                        gameState.score += 1;
+                    });
+                    gameState.enemies = [];
+                    updateUI();
+                    player.powerUp = null; // Instant effect
+                    break;
+                case 'COIN_BONUS':
+                    gameState.score += 50;
+                    updateUI();
+                    player.powerUp = null; // Instant effect
+                    break;
+                case 'SHIELD':
+                    if (!player.hasShield) {
+                        player.hasShield = true;
+                        player.shieldEl = document.createElement('div');
+                        player.shieldEl.style.cssText = `
+                            position: absolute; border: 3px solid #00ffff;
+                            width: 60px; height: 60px; border-radius: 50%;
+                            left: 50%; top: 50%; transform: translate(-50%, -50%);
+                            opacity: 0.7; animation: spin 4s linear infinite;
+                        `;
+                        player.el.appendChild(player.shieldEl);
+                    }
+                    player.powerUp = null; // Persistent until hit
+                    break;
+                case 'RAPID_FIRE':
+                    startShooting(); // Restart with new rate
+                    player.powerUpTimer = setTimeout(endPowerUp, 8000);
+                    break;
+                case 'SLOW_MO':
+                    setSlowMo(true);
+                    player.powerUpTimer = setTimeout(endPowerUp, 8000);
+                    break;
+                default:
+                    // For TRIPLE_SHOT, BIG_BANANAS, PIERCE_SHOT, SIDE_SHOTS
+                    player.powerUpTimer = setTimeout(endPowerUp, 10000);
+            }
+        }
+        
+        function endPowerUp() {
+            if (!player.powerUp) return;
+            
+            showNotification(`${allPowerUps.find(p => p.id === player.powerUp).name} ended.`, 1500);
+            
+            if (player.powerUp === 'RAPID_FIRE') startShooting(); // Reset to normal
+            if (player.powerUp === 'SLOW_MO') setSlowMo(false);
+
+            player.powerUp = null;
+        }
+
+        function setSlowMo(active) {
+            gameState.isSlowMo = active;
+            // Re-calculate spawn rate
+            let newSpawnRate = Math.max(200, 1500 - (gameState.wave * 50));
+            if (active) newSpawnRate *= 2;
+            gameState.enemySpawnRate = newSpawnRate;
+            
+            clearInterval(gameTimers.spawnInterval);
+            gameTimers.spawnInterval = setInterval(spawnEnemy, gameState.enemySpawnRate);
+        }
+
+        // --- 6i. Collision Detection ---
+        function checkCollisions() {
+            if (!gameState.isRunning) return;
+
+            // Player Bullets vs Enemies
+            for (let i = gameState.bullets.length - 1; i >= 0; i--) {
+                for (let j = gameState.enemies.length - 1; j >= 0; j--) {
+                    if (gameState.bullets[i] && gameState.enemies[j] && isColliding(gameState.bullets[i], gameState.enemies[j])) {
+                        damageEnemy(gameState.enemies[j], gameState.bullets[i], i, j);
+                        break; // Move to next bullet
+                    }
+                }
+            }
+
+            // Player vs Enemies
+            for (let i = gameState.enemies.length - 1; i >= 0; i--) {
+                if (gameState.enemies[i] && isColliding(player, gameState.enemies[i])) {
+                    gameState.enemies[i].el.remove();
+                    gameState.enemies.splice(i, 1);
+                    playerHit();
+                    break; // Only one hit per frame
+                }
+            }
+
+            // Player vs Enemy Bullets
+            for (let i = gameState.enemyBullets.length - 1; i >= 0; i--) {
+                if (gameState.enemyBullets[i] && isColliding(player, gameState.enemyBullets[i])) {
+                    gameState.enemyBullets[i].el.remove();
+                    gameState.enemyBullets.splice(i, 1);
+                    playerHit();
+                    break; // Only one hit per frame
+                }
+            }
+            
+            // Player vs Power-Ups
+             for (let i = gameState.powerUps.length - 1; i >= 0; i--) {
+                if (gameState.powerUps[i] && isColliding(player, gameState.powerUps[i])) {
+                    collectPowerUp(gameState.powerUps[i], i);
+                    break;
+                }
+            }
+        }
+
+        // --- 6j. Main Game Loop ---
         function gameLoop() {
-            for (let i = gameObjects.length - 1; i >= 0; i--) {
-                const obj = gameObjects[i];
-                if (!obj) continue;
+            if (!gameState.isRunning) return;
 
-                obj.age++;
-                let transformString = ``;
-                let xTranslate = 0;
-                let yTranslate = obj.y;
-                let rotate = 0;
-                let scale = 1;
-                let opacity = 1;
-                let filters = [];
-                if(obj.effects.includes('TINT')) { // Keep tint if it exists
-                    filters.push(`hue-rotate(${obj.tint}deg)`);
-                }
-                
-                obj.effects.forEach(effect => {
-                    switch(effect) {
-                        case 'ACCELERATE':
-                            obj.speed += 0.01;
-                            break;
-                        case 'ZIG_ZAG':
-                            xTranslate += Math.sin(obj.y / 50) * 30;
-                            break;
-                        case 'DRIFT_LEFT':
-                        case 'DRIFT_RIGHT':
-                            obj.xOffset += obj.driftAmount;
-                            
-                            // Cap the total horizontal drift to 15% of the viewport width
-                            // to prevent items from drifting off-screen.
-                            const xCap = window.innerWidth * 0.15; 
+            // Update positions
+            updatePlayerPosition();
+            updateBullets();
+            updateEnemies();
+            updateEnemyBullets();
+            updatePowerUps();
+            
+            // Check for hits
+            checkCollisions();
 
-                            if (obj.xOffset > xCap) {
-                                obj.xOffset = xCap;
-                                obj.driftAmount *= -1; // Reverse direction (bounce)
-                            } else if (obj.xOffset < -xCap) {
-                                obj.xOffset = -xCap;
-                                obj.driftAmount *= -1; // Reverse direction (bounce)
-                            }
-                            
-                            xTranslate += obj.xOffset;
-                            break;
-                        case 'SPIN_FAST':
-                            rotate += obj.age * 5;
-                            break;
-                        case 'SPIN_SLOW':
-                            rotate += obj.age * 0.5;
-                            break;
-                        case 'SHRINK':
-                            scale = Math.max(0.2, 1 - (obj.y / window.innerHeight));
-                            break;
-                        case 'GROW':
-                            scale = 0.2 + (obj.y / window.innerHeight) * 1.5;
-                            break;
-                        case 'FADE_PULSE':
-                            opacity = 0.7 + (Math.sin(obj.age / 20) * 0.3);
-                            break;
-                        case 'INVISI_PULSE':
-                             opacity = 0.5 + (Math.sin(obj.age / 20) * 0.5);
-                            break;
-                        case 'BLUR_PULSE':
-                            filters.push(`blur(${Math.abs(Math.sin(obj.age / 30) * 3)}px)`);
-                            break;
-                    }
-                });
-
-                obj.y += obj.speed; 
-                yTranslate = obj.y;
-                transformString = `translate(${xTranslate}px, ${yTranslate}px) rotate(${rotate}deg) scale(${scale})`;
-                
-                obj.el.style.transform = transformString;
-                obj.el.style.opacity = opacity;
-                obj.el.style.filter = filters.join(' ');
-
-                if (obj.y > window.innerHeight + 50) {
-                    obj.el.remove();
-                    gameObjects.splice(i, 1);
-                    if (gameIsActive) {
-                        gameOver();
-                    }
-                }
-            }
-            animationFrameId = requestAnimationFrame(gameLoop);
+            // Request next frame
+            gameTimers.gameLoopId = requestAnimationFrame(gameLoop);
         }
 
-        // --- 6. Run Timers ---
-        const timerInterval = setInterval(updateCountdown, 1000);
+
+        // --- 7. Run Timers & Init ---
+        mainCountdownTimer = setInterval(updateCountdown, 1000);
         updateCountdown();
         initGame();
 
@@ -720,5 +1095,4 @@
 
 </body>
 </html>
-
 
